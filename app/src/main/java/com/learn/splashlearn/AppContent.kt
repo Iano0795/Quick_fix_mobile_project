@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,7 +49,7 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun MainContent() {
-
+    var sidebarVisible by remember { mutableStateOf(false) }
     Box(){
         Image(
             painter = painterResource(id = R.drawable.bg),
@@ -63,16 +64,17 @@ fun MainContent() {
                     .height(120.dp)
                     .padding(horizontal = 25.dp, vertical = 10.dp)
             ){
-//                IconButton(
-//                    onClick = {  }  ,
-//                    modifier = Modifier.size(40.dp)
-//                ) {
-//                    Icon(
-//                        painter = painterResource(R.drawable.baseline_menu_24),
-//                        contentDescription = null,
-//                        modifier = Modifier.matchParentSize()
-//                    )
-//                }
+                IconButton(
+                    onClick = { sidebarVisible = !sidebarVisible }  ,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.baseline_menu_24),
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize()
+                    )
+                }
+
                 Row (
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(15.dp),
@@ -209,7 +211,24 @@ fun MainContent() {
             }
         }
     }
+    if(sidebarVisible){
+        Sidebar()
+    }
 
+}
+
+@Composable
+fun Sidebar() {
+    Column(
+        modifier = Modifier
+            .width(250.dp)
+            .fillMaxHeight()
+            .background(Color.LightGray)
+    ) {
+        Text("Sidebar Item 1")
+        Text("Sidebar Item 2")
+        Text("Sidebar Item 3")
+    }
 }
 
 fun Modifier.coloredShadow(

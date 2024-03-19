@@ -37,19 +37,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Sidebar() {
-    Column(
-        modifier = Modifier
-            .width(200.dp)
-            .fillMaxHeight()
-            .background(Color.LightGray)
-    ) {
-        Text("Sidebar Item 1")
-        Text("Sidebar Item 2")
-        Text("Sidebar Item 3")
-    }
-}
+
 
 @Preview(showBackground = true)
 @Composable
