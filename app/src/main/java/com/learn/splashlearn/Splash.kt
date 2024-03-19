@@ -41,12 +41,12 @@ fun Splash(navController: NavController) {
             ),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            OutlinedButton(onClick = { navController.navigate("Main_screen") },
+            OutlinedButton(onClick = { navController.navigate("Login_screen") },
                 modifier = Modifier.size(150.dp, 40.dp)
                 ) {
                 Text("Login", color = Color.Black)
             }
-            OutlinedButton(onClick = { navController.navigate("Main_screen") },
+            OutlinedButton(onClick = { navController.navigate("Register_screen") },
                 modifier = Modifier.size(150.dp, 40.dp)) {
                 Text("Register", color = Color.Black)
             }

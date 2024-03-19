@@ -31,6 +31,8 @@ class MainActivity : ComponentActivity() {
                 NavHost(navController, startDestination = "home_screen") {
                     composable("home_screen") { Splash(navController) }
                     composable("Main_screen") { MainContent() }
+                    composable("Login_screen") { LoginScreen(navController) }
+                    composable("Register_screen") { RegisterScreen(navController) }
                 }
             }
         }
