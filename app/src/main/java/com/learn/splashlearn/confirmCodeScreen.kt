@@ -1,6 +1,11 @@
 package com.learn.splashlearn
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -12,21 +17,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 
 @Composable
-fun ResetPasswordScreen() {
+fun ConfirmCodeScreen() {
     val navController = Navigation.navController
-    var phoneNumber by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -36,52 +35,33 @@ fun ResetPasswordScreen() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = buildAnnotatedString {
-                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                    append("Reset")
-                }
-                append(" Password")
-            },
+            text = "Enter the code provided",
             fontSize = 40.sp,
-            textAlign = TextAlign.Left,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Text(
-            text = "Please enter your phonenumber",
-            fontSize = 20.sp,
-            textAlign = TextAlign.Left,
+            fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
+
         OutlinedTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
+            value = code,
+            onValueChange = { code = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .padding(bottom = 16.dp)
                 .height(56.dp),
-            placeholder = { Text("Phone Number") },
+            placeholder = { Text("Enter code") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Phone
+                keyboardType = KeyboardType.Number
             )
         )
 
         Button(
-            onClick = { navController.navigate("confirm_screen") },
+            onClick = { navController.navigate("newPass_Screen") },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
-            Text("Reset Password")
+            Text("Confirm")
         }
     }
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//private fun resetPrev() {
-//    ResetPasswordScreen()
-//}
-
-
