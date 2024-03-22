@@ -22,7 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 @Composable
-fun Splash(navController: NavController) {
+fun Splash() {
+    val navController = Navigation.navController
     Box(
         modifier = Modifier
             .fillMaxSize()

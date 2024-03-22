@@ -2,6 +2,7 @@ package com.learn.splashlearn
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,11 +55,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.navigation.NavController
 
 
 @Composable
 fun MainContent() {
+    val navController = Navigation.navController
     var sidebarVisible by remember { mutableStateOf(false) }
         Box() {
             Image(
@@ -229,13 +231,13 @@ fun MainContent() {
             }
         }
     if(sidebarVisible){
-        Sidebar(onClose = { sidebarVisible = false })
+        Sidebar(navController = navController, onClose = { sidebarVisible = false })
     }
 
 }
 
 @Composable
-fun Sidebar(onClose: () -> Unit) {
+fun Sidebar(navController: NavController, onClose: () -> Unit) {
     Box (
         modifier = Modifier
             .fillMaxHeight()
@@ -254,7 +256,9 @@ fun Sidebar(onClose: () -> Unit) {
             MenuItem(icon = Icons.Default.Star, text = "Reviews")
             Spacer(modifier = Modifier.weight(1f))
             Divider(color = Color.LightGray, thickness = 1.dp)
-            MenuItem(icon = Icons.Default.ExitToApp, text = "Logout")
+            MenuItemClickable(icon = Icons.Default.ExitToApp, text = "Logout") {
+                navController.navigate("home_Screen")
+            }
         }
         Box(
             modifier = Modifier
@@ -299,6 +303,23 @@ fun MenuItem(icon: ImageVector, text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(text = text)
+    }
+}
+@Composable
+fun MenuItemClickable(icon: ImageVector, text: String, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Icon(

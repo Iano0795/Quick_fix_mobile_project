@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen() {
+    val navController = Navigation.navController
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -48,6 +49,12 @@ fun LoginScreen(navController: NavController) {
             label = { Text("Password") },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Forgot Password?",
+            color = Color.Gray,
+            modifier = Modifier.clickable { navController.navigate("reset_Screen") }
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(

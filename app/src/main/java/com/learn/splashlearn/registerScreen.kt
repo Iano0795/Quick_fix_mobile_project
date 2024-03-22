@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 @Composable
-fun RegisterScreen(navController: NavController) {
+fun RegisterScreen() {
+    val navController = Navigation.navController
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }

@@ -1,5 +1,6 @@
 package com.learn.splashlearn
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,23 +17,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.learn.splashlearn.ui.theme.SplashLearnTheme
 
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            Navigation.navController = rememberNavController()
             SplashLearnTheme {
-                val navController = rememberNavController()
-                NavHost(navController, startDestination = "home_screen") {
-                    composable("home_screen") { Splash(navController) }
+                NavHost(Navigation.navController as NavHostController, startDestination = "home_screen") {
+                    composable("home_screen") { Splash() }
                     composable("Main_screen") { MainContent() }
-                    composable("Login_screen") { LoginScreen(navController) }
-                    composable("Register_screen") { RegisterScreen(navController) }
+                    composable("Login_screen") { LoginScreen() }
+                    composable("Register_screen") { RegisterScreen() }
+                    composable("Reset_screen") { ResetPasswordScreen() }
                 }
             }
         }
