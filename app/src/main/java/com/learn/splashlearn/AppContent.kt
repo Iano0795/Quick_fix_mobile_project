@@ -1,5 +1,7 @@
 package com.learn.splashlearn
 
+import android.content.ContentValues.TAG
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,10 +58,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuth.AuthStateListener
+import com.learn.splashlearn.Navigation.navController
 
 
 @Composable
-fun MainContent() {
+fun MainContent(name: String?) {
     val navController = Navigation.navController
     var sidebarVisible by remember { mutableStateOf(false) }
         Box() {
@@ -93,7 +98,7 @@ fun MainContent() {
                         modifier = Modifier.align(Alignment.BottomStart)
                     ) {
                         Text(text = "Hi", fontWeight = FontWeight.Bold, fontSize = 30.sp)
-                        Text(text = "John!", fontSize = 30.sp)
+                        Text(text = "${name}!", fontSize = 30.sp)
                     }
                 }
                 Divider(color = Color.Black, thickness = 2.dp)
@@ -231,13 +236,13 @@ fun MainContent() {
             }
         }
     if(sidebarVisible){
-        Sidebar(navController = navController, onClose = { sidebarVisible = false })
+        Sidebar(navController = navController, name = name, onClose = { sidebarVisible = false })
     }
 
 }
 
 @Composable
-fun Sidebar(navController: NavController, onClose: () -> Unit) {
+fun Sidebar(navController: NavController, name: String?, onClose: () -> Unit) {
     Box (
         modifier = Modifier
             .fillMaxHeight()
@@ -249,7 +254,7 @@ fun Sidebar(navController: NavController, onClose: () -> Unit) {
                 .width(250.dp)
                 .background(Color.White)
         ) {
-            ProfileSection()
+            ProfileSection(name = name)
             Divider(color = Color.LightGray, thickness = 1.dp)
             Spacer(modifier = Modifier.height(16.dp))
             MenuItem(icon = Icons.Default.Notifications, text = "Assigned Jobs")
@@ -257,7 +262,7 @@ fun Sidebar(navController: NavController, onClose: () -> Unit) {
             Spacer(modifier = Modifier.weight(1f))
             Divider(color = Color.LightGray, thickness = 1.dp)
             MenuItemClickable(icon = Icons.Default.ExitToApp, text = "Logout") {
-                navController.navigate("home_Screen")
+                logout()
             }
         }
         Box(
@@ -278,8 +283,20 @@ fun Sidebar(navController: NavController, onClose: () -> Unit) {
 
 }
 
+fun logout() {
+    val firebaseauth = FirebaseAuth.getInstance()
+    firebaseauth.signOut()
+    val authStateListener = AuthStateListener{
+        if(it.currentUser == null){
+            Log.d(TAG, "logout: success")
+            navController.navigate("login_Screen")
+        }
+    }
+    firebaseauth.addAuthStateListener(authStateListener)
+}
+
 @Composable
-fun ProfileSection() {
+fun ProfileSection(name: String?) {
     Column(
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.Center
@@ -293,7 +310,7 @@ fun ProfileSection() {
                 .align(Alignment.CenterHorizontally)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = "John", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text(text = "${name}", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Text(text = "View Profile", textAlign = TextAlign.Center, color = Color.Gray)
     }
 }
@@ -392,8 +409,8 @@ fun Modifier.coloredShadow(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun contPrev() {
-    MainContent()
-}
+//@Preview(showBackground = true)
+//@Composable
+//private fun contPrev() {
+//    MainContent()
+//}

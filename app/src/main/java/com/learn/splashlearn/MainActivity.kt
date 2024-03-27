@@ -22,12 +22,17 @@ class MainActivity : ComponentActivity() {
             SplashLearnTheme {
                 NavHost(Navigation.navController as NavHostController, startDestination = "home_screen") {
                     composable("home_screen") { Splash() }
-                    composable("Main_screen") { MainContent() }
+                    composable("dashboard/{name}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name")
+                        MainContent(name)
+                    }
                     composable("Login_screen") { LoginScreen() }
-                    composable("Register_screen") { RegisterScreen() }
+                    composable("Register_screen") { RegistrationScreen() }
                     composable("Reset_screen") { ResetPasswordScreen() }
                     composable("confirm_screen") { ConfirmCodeScreen() }
                     composable("newPass_screen") { NewPasswordScreen() }
+                    composable("clientReg_screen") { ClientRegScreen() }
+                    composable("regAs_screen") { RegAsWho() }
                 }
             }
         }

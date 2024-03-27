@@ -42,7 +42,7 @@ import com.learn.splashlearn.Navigation.navController
 
 
 @Composable
-fun RegistrationScreen() {
+fun ClientRegScreen() {
     val context = LocalContext.current
     val name = remember {
         mutableStateOf(TextFieldValue())
@@ -71,7 +71,7 @@ fun RegistrationScreen() {
 
         Text(text = buildAnnotatedString {
             withStyle(style = SpanStyle(color = Color.Blue)) {
-                append("Artisan")
+                append("Client ")
             }
             withStyle(style = SpanStyle(color = Color.Black)) {
                 append("Registration")
@@ -266,7 +266,7 @@ fun RegistrationScreen() {
 
                         else -> {
                             loading = true
-                            createUserWithEmail(email.value.text.toString(), password.value.text.toString(),name.value.text.toString(),
+                            ccreateUserWithEmail(email.value.text.toString(), password.value.text.toString(),name.value.text.toString(),
                                 fullMobileNo){success, errorMessage ->
                                 loading = false
                                 if(success){
@@ -322,7 +322,7 @@ fun RegistrationScreen() {
         }
     }
 }
-fun createUserWithEmail(
+fun ccreateUserWithEmail(
     email: String,
     password: String,
     name: String,
@@ -341,7 +341,7 @@ fun createUserWithEmail(
                         "mobileNumber" to phoneNumber
                     )
 
-                    FirebaseFirestore.getInstance().collection("artisans")
+                    FirebaseFirestore.getInstance().collection("clients")
                         .document(userId)
                         .set(userMap)
                         .addOnSuccessListener {
@@ -368,7 +368,7 @@ fun createUserWithEmail(
 //        }
 }
 
-fun isInternetConnected(context: Context): Boolean {
+fun cisInternetConnected(context: Context): Boolean {
     val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
