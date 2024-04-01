@@ -1,13 +1,12 @@
-package com.learn.splashlearn
+package com.learn.splashlearn.register
 
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
@@ -23,11 +22,18 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -36,17 +42,21 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.learn.splashlearn.Navigation.navController
-
+import com.learn.splashlearn.Navigation
+import com.learn.splashlearn.R
+import com.learn.splashlearn.User
 
 @Composable
-fun ClientRegScreen() {
+fun RegistrationScreen() {
     val context = LocalContext.current
     val name = remember {
         mutableStateOf(TextFieldValue())
     }
+
     val email = remember { mutableStateOf(TextFieldValue()) }
     val countryCode = remember { mutableStateOf(TextFieldValue()) }
     val mobileNo = remember { mutableStateOf(TextFieldValue()) }
@@ -54,7 +64,10 @@ fun ClientRegScreen() {
     val confirmPassword = remember { mutableStateOf(TextFieldValue()) }
     val navController = Navigation.navController
     var loading by remember { mutableStateOf(false) }
-
+    var selectedWork by remember { mutableStateOf(" ") }
+    val itemList = listOf<String>("Plumber", "Carpenter", "Tailor")
+    var selectedIndex by rememberSaveable { mutableStateOf(0) }
+    var buttonModifier = Modifier.width(300.dp).height(60.dp).clip(RoundedCornerShape(10.dp))
     val nameErrorState = remember { mutableStateOf(false) }
     val emailErrorState = remember { mutableStateOf(false) }
     val passwordErrorState = remember { mutableStateOf(false) }
@@ -71,7 +84,7 @@ fun ClientRegScreen() {
 
         Text(text = buildAnnotatedString {
             withStyle(style = SpanStyle(color = Color.Blue)) {
-                append("Client ")
+                append("Artisan")
             }
             withStyle(style = SpanStyle(color = Color.Black)) {
                 append("Registration")
@@ -239,6 +252,10 @@ fun ClientRegScreen() {
             Text(text = msg, color = Color.Red)
         }
         Spacer(Modifier.size(16.dp))
+        DropdownList(itemList = itemList, selectedIndex = selectedIndex, modifier = buttonModifier, onItemSelected = { work ->
+            selectedWork = work
+        })
+        Spacer(Modifier.size(16.dp))
         val fullMobileNo = "+${countryCode.value.text}${mobileNo.value.text}"
         Button(
             onClick = {
@@ -266,19 +283,17 @@ fun ClientRegScreen() {
 
                         else -> {
                             loading = true
-                            ccreateUserWithEmail(email.value.text.toString(), password.value.text.toString(),name.value.text.toString(),
-                                fullMobileNo){success, errorMessage ->
+                            createUserWithEmail(email.value.text.toString(), password.value.text.toString(), name.value.text.toString(),
+                                fullMobileNo, selectedWork) { success, errorMessage, user ->
                                 loading = false
-                                if(success){
+                                if (success) {
                                     Toast.makeText(
                                         context,
                                         "Registered successfully",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    val nameValue = name.value.text
-                                    navController.navigate("dashboard/$nameValue")
-                                }
-                                else{
+                                    user?.let { navController.navigate("dashboard/${it.name}") }
+                                } else {
                                     Toast.makeText(
                                         context,
                                         errorMessage,
@@ -286,6 +301,7 @@ fun ClientRegScreen() {
                                     ).show()
                                 }
                             }
+
 
                         }
                     }
@@ -312,7 +328,7 @@ fun ClientRegScreen() {
         Spacer(Modifier.size(16.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             TextButton(onClick = {
-                navController.navigate("login_screen") {
+                navController.navigate("loginAs_screen") {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
                 }
@@ -322,53 +338,50 @@ fun ClientRegScreen() {
         }
     }
 }
-fun ccreateUserWithEmail(
+fun createUserWithEmail(
     email: String,
     password: String,
     name: String,
     phoneNumber: String,
-    onComplete: (Boolean, String?) -> Unit) {
-    FirebaseAuth
-        .getInstance()
+    selectedWork: String,
+    onComplete: (Boolean, String?, User?) -> Unit
+) {
+    FirebaseAuth.getInstance()
         .createUserWithEmailAndPassword(email, password)
-        .addOnCompleteListener {task ->
+        .addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 // User creation successful, now add additional data to Firestore
                 val userId = FirebaseAuth.getInstance().currentUser?.uid
                 if (userId != null) {
                     val userMap = hashMapOf(
                         "name" to name,
-                        "mobileNumber" to phoneNumber
+                        "mobileNumber" to phoneNumber,
+                        "Work" to selectedWork
                     )
 
-                    FirebaseFirestore.getInstance().collection("clients")
+                    FirebaseFirestore.getInstance().collection("artisans")
                         .document(userId)
                         .set(userMap)
                         .addOnSuccessListener {
-                            // Additional data added successfully
-                            onComplete(true, null)
+                            // Additional data added successfully, return the User object
+                            onComplete(true, null, User(name))
                         }
                         .addOnFailureListener { exception ->
                             // Error adding additional data
-                            onComplete(false, exception.message)
+                            onComplete(false, exception.message, null)
                         }
                 } else {
-                    onComplete(false, "User ID is null")
+                    onComplete(false, "User ID is null", null)
                 }
             } else {
                 // User creation failed
-                onComplete(false, task.exception?.message)
+                onComplete(false, task.exception?.message, null)
             }
-
         }
-//        .addOnFailureListener{
-//            Log.d(TAG, "Inside_OnFailureListener: ${it.message}")
-//            val errorMessage = it.message
-//            onComplete(false, errorMessage)
-//        }
 }
 
-fun cisInternetConnected(context: Context): Boolean {
+
+fun isInternetConnected(context: Context): Boolean {
     val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -381,8 +394,74 @@ fun cisInternetConnected(context: Context): Boolean {
     }
 }
 
-@Preview(showBackground = true)
+
+
 @Composable
-private fun RegPrev() {
-    RegistrationScreen()
+fun DropdownList(itemList: List<String>, selectedIndex: Int, modifier: Modifier, onItemSelected: (String) -> Unit ) {
+
+    var showDropdown by rememberSaveable { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    var selectedItemIndex by remember { mutableStateOf(selectedIndex) }
+
+
+    Column(
+        modifier = Modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center) {
+
+        // button
+        Box(
+            modifier = modifier
+                .background(Color.White)
+                .clickable { showDropdown = true },
+//            .clickable { showDropdown = !showDropdown },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = itemList[selectedItemIndex], modifier = Modifier.padding(3.dp))
+        }
+
+        // dropdown list
+        Box() {
+            if (showDropdown) {
+                Popup(
+                    alignment = Alignment.TopCenter,
+                    properties = PopupProperties(
+                        excludeFromSystemGesture = true,
+                    ),
+                    // to dismiss on click outside
+                    onDismissRequest = { showDropdown = false }
+                ) {
+
+                    Column(
+                        modifier = modifier
+                            .heightIn(max = 90.dp)
+                            .verticalScroll(state = scrollState)
+                            .border(width = 1.dp, color = Color.Gray),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+
+                        itemList.onEachIndexed { index, item ->
+                            if (index != 0) {
+                                Divider(thickness = 1.dp, color = Color.LightGray)
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .background(Color.White)
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onItemSelected(itemList[index])
+                                        showDropdown = !showDropdown
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = item,)
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
 }

@@ -1,13 +1,10 @@
-package com.learn.splashlearn
+package com.learn.splashlearn.register
 
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
-import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -35,14 +33,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.learn.splashlearn.Navigation.navController
+import com.learn.splashlearn.Navigation
+import com.learn.splashlearn.R
+import com.learn.splashlearn.User
 
 
 @Composable
-fun RegistrationScreen() {
+fun ClientRegScreen() {
     val context = LocalContext.current
     val name = remember {
         mutableStateOf(TextFieldValue())
@@ -50,6 +49,7 @@ fun RegistrationScreen() {
     val email = remember { mutableStateOf(TextFieldValue()) }
     val countryCode = remember { mutableStateOf(TextFieldValue()) }
     val mobileNo = remember { mutableStateOf(TextFieldValue()) }
+
     val password = remember { mutableStateOf(TextFieldValue()) }
     val confirmPassword = remember { mutableStateOf(TextFieldValue()) }
     val navController = Navigation.navController
@@ -61,6 +61,7 @@ fun RegistrationScreen() {
     val confirmPasswordErrorState = remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -71,7 +72,7 @@ fun RegistrationScreen() {
 
         Text(text = buildAnnotatedString {
             withStyle(style = SpanStyle(color = Color.Blue)) {
-                append("Artisan")
+                append("Client ")
             }
             withStyle(style = SpanStyle(color = Color.Black)) {
                 append("Registration")
@@ -266,8 +267,8 @@ fun RegistrationScreen() {
 
                         else -> {
                             loading = true
-                            createUserWithEmail(email.value.text.toString(), password.value.text.toString(),name.value.text.toString(),
-                                fullMobileNo){success, errorMessage ->
+                            ccreateUserWithEmail(email.value.text.toString(), password.value.text.toString(),name.value.text.toString(),
+                                fullMobileNo){success, errorMessage, user ->
                                 loading = false
                                 if(success){
                                     Toast.makeText(
@@ -276,7 +277,7 @@ fun RegistrationScreen() {
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     val nameValue = name.value.text
-                                    navController.navigate("dashboard/$nameValue")
+                                    user?.let { navController.navigate("dashboard/${it.name}") }
                                 }
                                 else{
                                     Toast.makeText(
@@ -312,7 +313,7 @@ fun RegistrationScreen() {
         Spacer(Modifier.size(16.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
             TextButton(onClick = {
-                navController.navigate("login_screen") {
+                navController.navigate("loginAs_screen") {
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
                 }
@@ -322,12 +323,12 @@ fun RegistrationScreen() {
         }
     }
 }
-fun createUserWithEmail(
+fun ccreateUserWithEmail(
     email: String,
     password: String,
     name: String,
     phoneNumber: String,
-    onComplete: (Boolean, String?) -> Unit) {
+    onComplete: (Boolean, String?, User?) -> Unit) {
     FirebaseAuth
         .getInstance()
         .createUserWithEmailAndPassword(email, password)
@@ -341,23 +342,23 @@ fun createUserWithEmail(
                         "mobileNumber" to phoneNumber
                     )
 
-                    FirebaseFirestore.getInstance().collection("artisans")
+                    FirebaseFirestore.getInstance().collection("clients")
                         .document(userId)
                         .set(userMap)
                         .addOnSuccessListener {
                             // Additional data added successfully
-                            onComplete(true, null)
+                            onComplete(true, null, User(name))
                         }
                         .addOnFailureListener { exception ->
                             // Error adding additional data
-                            onComplete(false, exception.message)
+                            onComplete(false, exception.message, null)
                         }
                 } else {
-                    onComplete(false, "User ID is null")
+                    onComplete(false, "User ID is null", null)
                 }
             } else {
                 // User creation failed
-                onComplete(false, task.exception?.message)
+                onComplete(false, task.exception?.message, null)
             }
 
         }
@@ -368,7 +369,7 @@ fun createUserWithEmail(
 //        }
 }
 
-fun isInternetConnected(context: Context): Boolean {
+fun cisInternetConnected(context: Context): Boolean {
     val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -381,8 +382,8 @@ fun isInternetConnected(context: Context): Boolean {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-private fun RegPrev() {
-    RegistrationScreen()
-}
+//@Preview(showBackground = true)
+//@Composable
+//private fun RegPrev() {
+//    RegistrationScreen()
+//}

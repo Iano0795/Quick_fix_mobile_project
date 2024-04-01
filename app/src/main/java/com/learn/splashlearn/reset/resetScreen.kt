@@ -1,5 +1,6 @@
-package com.learn.splashlearn
+package com.learn.splashlearn.reset
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -12,21 +13,26 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.learn.splashlearn.Navigation
+import com.learn.splashlearn.Navigation.navController
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun ResetPasswordScreen() {
     val navController = Navigation.navController
-    var phoneNumber by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -48,40 +54,65 @@ fun ResetPasswordScreen() {
         )
 
         Text(
-            text = "Please enter your phonenumber",
+            text = "Please enter your email",
             fontSize = 20.sp,
             textAlign = TextAlign.Left,
             modifier = Modifier.padding(bottom = 16.dp)
         )
         OutlinedTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
+            value = email,
+            onValueChange = { email = it },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
                 .height(56.dp),
-            placeholder = { Text("Phone Number") },
+            placeholder = { Text("Your Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Phone
+                keyboardType = KeyboardType.Email
             )
         )
 
         Button(
-            onClick = { navController.navigate("confirm_screen") },
+            onClick = { 
+                      FirebaseAuth.getInstance().sendPasswordResetEmail(email)
+                          .addOnCompleteListener{task ->
+                              if(task.isSuccessful){
+                                  Toast.makeText(
+                                      context,
+                                      "Email sent successfully!, Check your email",
+                                      Toast.LENGTH_LONG
+                                  ).show()
+                              }else{
+                                  Toast.makeText(
+                                      context,
+                                      task.exception?.message,
+                                      Toast.LENGTH_LONG
+                                  ).show()
+                              }
+                          }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
             Text("Reset Password")
         }
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(
+            onClick = {
+                Navigation.navController.navigate("loginAs_screen")
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text("Back To Login")
+        }
     }
 }
 
-//@Preview(showBackground = true)
-//@Composable
-//private fun resetPrev() {
-//    ResetPasswordScreen()
-//}
+
+
 
 

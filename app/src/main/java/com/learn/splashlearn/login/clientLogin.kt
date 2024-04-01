@@ -1,6 +1,6 @@
-package com.learn.splashlearn
+package com.learn.splashlearn.login
 
-import android.content.ContentValues.TAG
+import android.content.ContentValues
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -8,13 +8,25 @@ import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,14 +37,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.learn.splashlearn.Navigation
+import com.learn.splashlearn.R
+import com.learn.splashlearn.User
 
 @Composable
-fun LoginScreen() {
+fun ClientLogin() {
     val navController = Navigation.navController
     val email = remember { mutableStateOf(TextFieldValue()) }
     val password = remember { mutableStateOf(TextFieldValue()) }
@@ -123,7 +137,7 @@ fun LoginScreen() {
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
-                if(lisInternetConnected(context)){
+                if(clisInternetConnected(context)){
                     when{
                         email.value.text.isEmpty() -> {
                             emailErrorState.value = true
@@ -134,14 +148,27 @@ fun LoginScreen() {
                         }
                         else -> {
                             loading = true
-                            login(email.value.text, password.value.text){
-                                success, errorMessage ->
+                            cllogin(email.value.text, password.value.text){
+                                    success, errorMessage, User ->
+                                loading = false
                                 if(success){
-                                    Toast.makeText(
-                                        context,
-                                        "Login successfully",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+
+                                    if (!User?.name.isNullOrBlank()) {
+                                        User?.let {
+                                            Toast.makeText(
+                                                context,
+                                                "Login successfully",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            navController.navigate("dashboard/${it.name}")
+                                        }
+                                    }else{
+                                        Toast.makeText(
+                                            context,
+                                            "You are not a client!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 } else{
                                     Toast.makeText(
                                         context,
@@ -160,10 +187,14 @@ fun LoginScreen() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-                      },
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Login")
+            if (loading) {
+                CircularProgressIndicator(color = Color.White) // Show CircularProgressIndicator when loading
+            } else {
+                Text(text = "Login", color = Color.White)
+            }
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(
@@ -184,21 +215,51 @@ fun LoginScreen() {
     }
 }
 
-fun login(email: String, password: String,  onComplete: (Boolean, String?) -> Unit) {
+fun cllogin(email: String, password: String, onComplete: (Boolean, String?, User?) -> Unit) {
     val firebaseauth = FirebaseAuth.getInstance()
 
     firebaseauth
         .signInWithEmailAndPassword(email, password)
-        .addOnCompleteListener {
-            Log.d(TAG, "login: success")
-            onComplete(true, null)
-        }
-        .addOnFailureListener{exception ->
-            onComplete(false, exception.message)
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                // Login successful, trigger retrieval of additional user data
+                val uid = task.result?.user?.uid
+                clretrieveUserData(uid) { success, errorMessage, name ->
+                    if (success) {
+                        onComplete(true, null, User(name ?: ""))
+                    } else {
+                        onComplete(false, errorMessage, null)
+                    }
+                }
+            } else {
+                onComplete(false, task.exception?.message, null)
+            }
         }
 }
 
-fun lisInternetConnected(context: Context): Boolean {
+fun clretrieveUserData(uid: String?, onComplete: (Boolean, String?, String?) -> Unit) {
+    if (uid == null) {
+        onComplete(false, "User ID is null", null)
+        return
+    }
+
+    // Retrieve additional user data (e.g., name) from Firestore or other data source
+    FirebaseFirestore.getInstance().collection("clients").document(uid)
+        .get()
+        .addOnSuccessListener { document ->
+            val name = document?.getString("name")
+            onComplete(true, null, name)
+            if (name != null) {
+                Navigation.navController.navigate("dashboard/$name")
+            } else {
+                Log.d(ContentValues.TAG, "retrieveUserData: name is null")
+            }
+        }
+        .addOnFailureListener { exception ->
+            onComplete(false, exception.message, null)
+        }
+}
+fun clisInternetConnected(context: Context): Boolean {
     val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -210,9 +271,3 @@ fun lisInternetConnected(context: Context): Boolean {
         return networkInfo.isConnected
     }
 }
-
-//@Preview(showBackground = true)
-//@Composable
-//fun PreviewLoginScreen() {
-//    LoginScreen(navController)
-//}
