@@ -28,7 +28,7 @@ fun RegAsWho() {
             .padding(40.dp, 70.dp)
     ){
 
-        Text(text = "Register As Who?",
+        Text(text = "Register As",
             fontSize = 40.sp,
             fontWeight = FontWeight.Bold,
             )

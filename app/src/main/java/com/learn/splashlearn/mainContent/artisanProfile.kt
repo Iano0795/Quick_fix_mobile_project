@@ -1,6 +1,14 @@
 package com.learn.splashlearn.mainContent
 
-
+import android.app.Activity
+import android.content.ContentValues
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -43,34 +52,39 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
-import com.learn.splashlearn.R
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
-import com.learn.splashlearn.Navigation.navController
+import com.learn.splashlearn.Navigation
+import com.learn.splashlearn.R
 import com.learn.splashlearn.User
-import android.content.Context
-import android.util.Log
-import android.widget.Toast
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.text.TextStyle
-import com.google.firebase.auth.EmailAuthProvider
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-
 @Composable
-fun ProfileScreen(user: User?) {
+fun artisanProfileScreen(user: User?) {
     val email = remember { mutableStateOf(TextFieldValue()) }
+    var loading by remember { mutableStateOf(false) }
     val name = user?.name ?: ""
     val mobileNo = remember { mutableStateOf(TextFieldValue()) }
+    val showDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
-    var loading by remember { mutableStateOf(false) }
+    var pdfUri by remember { mutableStateOf<Uri?>(null) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            val uri: Uri? = data?.data
+            if (uri != null) {
+                pdfUri = uri
+            } else {
+                Toast.makeText(context, "Failed to retrieve PDF", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
     var isPasswordDialogVisible by remember { mutableStateOf(false) }
     fun showPasswordDialog() {
         isPasswordDialogVisible = true
@@ -87,14 +101,14 @@ fun ProfileScreen(user: User?) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(200.dp)
             ){
                 Icon(
                     painter = painterResource(id = R.drawable.baseline_close_24),
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .clickable { navController.navigate("dashboard/$name") }
+                        .clickable { Navigation.navController.navigate("dashboard/$name") }
                 )
 
                 Box(
@@ -130,7 +144,7 @@ fun ProfileScreen(user: User?) {
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             Text(text = "$name",
                 fontWeight = FontWeight.Bold,
                 fontSize = 30.sp,
@@ -147,6 +161,7 @@ fun ProfileScreen(user: User?) {
             horizontalAlignment = Alignment.Start
         ) {
             Text(text = "Email:")
+
             OutlinedTextField(
                 value = email.value,
                 onValueChange = {email.value = it},
@@ -154,11 +169,11 @@ fun ProfileScreen(user: User?) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
                     .background(color = Color.White, shape = RoundedCornerShape(15.dp)),
-                placeholder = { Text(text = "Email") },
-                textStyle = TextStyle(color = Color.Black)
+                placeholder = { Text(text = "Email") }
             )
             Spacer(modifier = Modifier.height(10.dp))
             Text(text = "Phonenumber:")
+
             OutlinedTextField(
                 value = mobileNo.value,
                 onValueChange = {mobileNo.value = it},
@@ -166,11 +181,28 @@ fun ProfileScreen(user: User?) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
                     .background(color = Color.White, shape = RoundedCornerShape(15.dp)),
-                placeholder = { Text(text = "Phonenumber") },
-                textStyle = TextStyle(color = Color.Black)
+                placeholder = { Text(text = "Phonenumber") }
             )
+            Spacer(modifier = Modifier.height(15.dp))
+            Button(
+                onClick = { showDialog.value = true },
+                modifier = Modifier
+                    .padding(16.dp)
+                    .height(50.dp)
+                    .width(400.dp)
+                    .padding(horizontal = 16.dp),
+                shape = RectangleShape
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    Icon(painter = painterResource(id = R.drawable.baseline_upload_24), contentDescription = "Upload icon")
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Upload a certificate")
+                }
+            }
             Spacer(modifier = Modifier.height(10.dp))
-            fun onclickUpdate() {
+            fun artOnclickUpdate() {
                 showPasswordDialog()
             }
             Button(
@@ -178,17 +210,47 @@ fun ProfileScreen(user: User?) {
                     .size(100.dp, 50.dp)
                     .clip(RoundedCornerShape(15.dp))
                     .align(Alignment.CenterHorizontally),
-                onClick = { onclickUpdate() }) {
+                onClick = { artOnclickUpdate() }) {
                     Text(text = "Update")
-
             }
             if (isPasswordDialogVisible) {
-                clientPasswordDialog(
+                PasswordDialog(
                     context, name, email = email.value.text, mobileNo = mobileNo.value.text,
                     onDismiss = { isPasswordDialogVisible = false },
                 )
             }
+            // Popup Dialog
+            if (showDialog.value) {
+                Dialog(onDismissRequest = { showDialog.value = false }) {
+                    Surface(shape = RectangleShape) {
+                        Column(
+                            modifier = Modifier
+                                .padding(5.dp)
+                                .size(400.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            IconButton(
+                                onClick = { showDialog.value = false },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Icon(painter = painterResource(id = R.drawable.baseline_close_24), contentDescription = "Close")
+                            }
+
+                            Button(
+                                onClick = { launcher.launch(createFilePickerIntent()) },
+                                modifier = Modifier
+                                    .padding(16.dp)
+                                    .size(250.dp, 40.dp)
+                            ) {
+                                Text(text = "Choose to Upload")
+                            }
+                        }
+                    }
+                }
+            }
             Spacer(modifier = Modifier.weight(1f))
+
             Button(
                 onClick = { logout() },
                 modifier = Modifier.fillMaxWidth()
@@ -204,7 +266,7 @@ fun ProfileScreen(user: User?) {
                     ) {
                         Icon(
                             imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Add Icon"
+                            contentDescription = "logout icon"
                         )
                     }
                     Text(text = "Logout")
@@ -212,12 +274,16 @@ fun ProfileScreen(user: User?) {
 
             }
 
+            LaunchedEffect(pdfUri) {
+                if (pdfUri != null) {
+                    uploadPdfToFirebase(context, pdfUri!!)
+                }
+            }
         }
     }
 }
-
 @Composable
-fun clientPasswordDialog(context: Context, name: String, email: String, mobileNo: String, onDismiss: () -> Unit) {
+fun PasswordDialog(context: Context, name: String, email: String, mobileNo: String, onDismiss: () -> Unit) {
     var password by remember { mutableStateOf(TextFieldValue()) }
     var loading by remember { mutableStateOf(false) }
 
@@ -248,7 +314,7 @@ fun clientPasswordDialog(context: Context, name: String, email: String, mobileNo
                     Button(
                         onClick = {
                             loading = true
-                            updateDetails(context, name, email = email, mobileNo = mobileNo, password.text)
+                            artisanUpdateDetails(context, name, email = email, mobileNo = mobileNo, password.text)
                         },
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
@@ -270,11 +336,7 @@ fun clientPasswordDialog(context: Context, name: String, email: String, mobileNo
         }
     }
 }
-
-
-
-
-fun updateDetails(context: Context, name: String, email: String, mobileNo: String, password: String) {
+fun artisanUpdateDetails(context: Context, name: String, email: String, mobileNo: String, password: String) {
     val db = FirebaseFirestore.getInstance()
     val userCollection = db.collection("clients")
     val updatedUser = hashMapOf<String, Any>(
@@ -336,5 +398,25 @@ fun updateDetails(context: Context, name: String, email: String, mobileNo: Strin
 }
 
 
+private fun createFilePickerIntent(): Intent {
+    return Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "application/pdf" // Filter only PDF files
+    }
+}
 
+// Function to upload PDF file to Firebase Storage
+private fun uploadPdfToFirebase(context: Context, pdfUri: Uri) {
+    val storageRef = Firebase.storage.reference
+    val fileName = "example_${System.currentTimeMillis()}.pdf" // Add timestamp to the filename
+    val fileRef = storageRef.child("certifications/$fileName") // Adjusted path to certifications folder
 
+    // Upload the file
+    fileRef.putFile(pdfUri)
+        .addOnSuccessListener { _ ->
+            Toast.makeText(context, "PDF uploaded successfully", Toast.LENGTH_SHORT).show()
+        }
+        .addOnFailureListener { exception ->
+            Toast.makeText(context, "Failed to upload PDF: ${exception.message}", Toast.LENGTH_SHORT).show()
+        }
+}

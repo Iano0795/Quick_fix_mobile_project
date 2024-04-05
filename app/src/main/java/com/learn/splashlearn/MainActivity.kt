@@ -21,8 +21,16 @@ import com.learn.splashlearn.reset.NewPasswordScreen
 import com.learn.splashlearn.reset.ResetPasswordScreen
 import com.learn.splashlearn.ui.theme.SplashLearnTheme
 import com.google.firebase.FirebaseApp
-import com.learn.splashlearn.User
-
+import com.learn.splashlearn.mainContent.CardReviewScreen
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavBackStackEntry
+import com.learn.splashlearn.getArtisanDetailsFromFirestore
+import androidx.compose.runtime.*
+import com.learn.splashlearn.mainContent.AssignedJobs
+import com.learn.splashlearn.mainContent.JobsGiven
+import com.learn.splashlearn.mainContent.ReviewJobs
+import com.learn.splashlearn.mainContent.Reviews
+import com.learn.splashlearn.mainContent.artisanProfileScreen
 
 
 class MainActivity : ComponentActivity() {
@@ -49,16 +57,67 @@ class MainActivity : ComponentActivity() {
                     composable("newPass_screen") { NewPasswordScreen() }
                     composable("clientReg_screen") { ClientRegScreen() }
                     composable("regAs_screen") { RegAsWho() }
+                    composable("assigned_screen/{name}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name")
+                        val user = User(name ?: "")
+                        AssignedJobs(user)
+                    }
+                    composable("jobsgiven_screen/{name}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name")
+                        val user = User(name ?: "")
+                        JobsGiven(user)
+                    }
+                    composable("reviewjobs_screen/{name}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name")
+                        val user = User(name ?: "")
+                        ReviewJobs(user)
+                    }
+                    composable("yourreviews_screen/{name}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name")
+                        val user = User(name ?: "")
+                        Reviews(user)
+                    }
                     composable("profile/{name}") { backStackEntry ->
                         val name = backStackEntry.arguments?.getString("name")
                         val user = User(name ?: "")
                         ProfileScreen(user)
                     }
+                    composable("artisanProfile/{name}") { backStackEntry ->
+                        val name = backStackEntry.arguments?.getString("name")
+                        val user = User(name ?: "")
+                        artisanProfileScreen(user)
+                    }
+                    composable("review_screen/{artisanName}") { backStackEntry ->
+                        val artisanName = backStackEntry.arguments?.getString("artisanName")
+                        val user = User(artisanName ?: "")
+                        var artisan by remember { mutableStateOf<Artisan?>(null) }
+
+                        LaunchedEffect(artisanName) {
+                            val retrievedArtisan = getArtisanDetailsFromFirestore(artisanName)
+                            artisan = retrievedArtisan
+                        }
+
+                        artisan?.let { CardReviewScreen(artisan = it, user) }
+                    }
+
+
                 }
             }
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

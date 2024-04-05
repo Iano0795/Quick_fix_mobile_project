@@ -5,19 +5,23 @@ import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,6 +70,10 @@ import com.learn.splashlearn.Navigation
 import com.learn.splashlearn.Navigation.navController
 import com.learn.splashlearn.R
 import com.learn.splashlearn.User
+import com.learn.splashlearn.Artisan
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
+import java.time.format.TextStyle
 
 
 @Composable
@@ -76,6 +84,18 @@ fun MainContent(user: User?) {
     var artisans by remember { mutableStateOf<List<Artisan>>(emptyList()) }
     var sidebarVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var selectedFilter by remember { mutableStateOf<String?>(null) }
+
+
+    val filteredArtisans = if (selectedFilter != null) {
+        artisans.filter { it.workName == selectedFilter }
+    } else {
+        artisans
+    }
+    var isClient by remember { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(Unit) {
+        isClient = determineUserRole() == "Client"
+    }
     Box() {
         Image(
             painter = painterResource(id = R.drawable.bg),
@@ -88,11 +108,11 @@ fun MainContent(user: User?) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(120.dp)
-                    .padding(horizontal = 25.dp, vertical = 10.dp)
+                    .padding(horizontal = 17.dp, vertical = 17.dp)
             ) {
                 IconButton(
                     onClick = { sidebarVisible = !sidebarVisible },
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(30.dp)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.baseline_menu_24),
@@ -110,49 +130,47 @@ fun MainContent(user: User?) {
                     Text(text = "${user?.name}!", fontSize = 30.sp)
                 }
             }
-            Divider(color = Color.Black, thickness = 2.dp)
+            Divider(color = Color.Black, thickness = 1.dp)
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(10.dp, 4.dp)
             ) {
-                ElevatedButton(
-                    onClick = { /*TODO*/ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.LightGray
-                    )
-                ) {
-                    Text(text = "Plumber", color = Color.Black)
-                }
-                ElevatedButton(
-                    onClick = { /*TODO*/ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.LightGray
-                    )
-                ) {
-                    Text(text = "Tailor", color = Color.Black)
-                }
-                ElevatedButton(
-                    onClick = { /*TODO*/ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.LightGray
-                    )
-                ) {
-                    Text(text = "Carpenter", color = Color.Black)
-                }
+                FilterButton(
+                    text = "All",
+                    isSelected = selectedFilter == null,
+                    onClick = { selectedFilter = null }
+                )
+                FilterButton(
+                    text = "Plumber",
+                    isSelected = selectedFilter == "Plumber",
+                    onClick = { selectedFilter = "Plumber" }
+                )
+                FilterButton(
+                    text = "Tailor",
+                    isSelected = selectedFilter == "Tailor",
+                    onClick = { selectedFilter = "Tailor" }
+                )
+                FilterButton(
+                    text = "Carpenter",
+                    isSelected = selectedFilter == "Carpenter",
+                    onClick = { selectedFilter = "Carpenter" }
+                )
             }
+            Divider(color = Color.Black, thickness = 1.dp)
             LaunchedEffect(Unit) {
                 val firestore = FirebaseFirestore.getInstance()
                 firestore.collection("artisans")
                     .get()
                     .addOnSuccessListener { documents ->
                         val newArtisans = documents.map { document ->
+                            val uid = document.id
                             val name = document.getString("name") ?: ""
                             val phoneNumber = document.getString("mobileNumber") ?: ""
                             val workName = document.getString("Work") ?: ""
                             val numberOfReviews = document.getString("numberOfReviews")?.toString() ?: ""
-                            Artisan(name, phoneNumber, workName, numberOfReviews)
+                            Artisan(uid, name, phoneNumber, workName, numberOfReviews)
                         }
                         artisans = newArtisans.filter { it.name != name }
                         loading = false
@@ -163,6 +181,12 @@ fun MainContent(user: User?) {
                         loading = false
                     }
             }
+            // Function to navigate to the review screen
+            fun navigateToReviewScreen(navController: NavController, artisan: Artisan) {
+                navController.navigate("review_screen/${artisan.name}")
+            }
+
+
             if (loading) {
                 // Show loading indicator
                 CircularProgressIndicator(
@@ -175,44 +199,66 @@ fun MainContent(user: User?) {
                         .fillMaxWidth()
                         .height(1000.dp)
                         .padding(15.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    items(artisans) { artisan ->
-                        ArtisanCard(artisan)
+                    items(filteredArtisans) { artisan ->
+                        ArtisanCard(artisan = artisan) {
+                            // Handle click on the artisan card
+                            navigateToReviewScreen(navController, artisan)
+                        }
                     }
                 }
             }
         }
     }
-    if(sidebarVisible){
-        Sidebar(navController = navController, name = name, onClose = { sidebarVisible = false })
+    if(sidebarVisible && isClient != null){
+        Sidebar(navController = navController, name = name, isClient = isClient ?: false, onClose = { sidebarVisible = false })
     }
 
 }
 
-data class Artisan(
-    val name: String,
-    val phoneNumber: String,
-    val workName: String,
-    val numberOfReviews: String
-)
 
+@Composable
+fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
+    val backgroundColor = if (isSelected) {
+        Color.Blue // Change the background color if selected
+    } else {
+        Color.LightGray
+    }
+
+    Box(
+        modifier = Modifier
+            .border(1.dp, Color.Black, shape = RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .background(backgroundColor, shape = RoundedCornerShape(10.dp))
+            .padding(vertical = 8.dp, horizontal = 16.dp)
+    ) {
+        Text(
+            text = text,
+            color = if (isSelected) Color.White else Color.Black,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
 
 
 @Composable
-fun ArtisanCard(artisan: Artisan, modifier: Modifier = Modifier) {
+fun ArtisanCard(artisan: Artisan, modifier: Modifier = Modifier, onArtisanClicked: (Artisan) -> Unit) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(15.dp))
-            .size(500.dp, 110.dp)
+            .fillMaxWidth()
+            .height(85.dp)
+            .clickable { onArtisanClicked(artisan) }
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(15.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(20.dp)
+                .padding(10.dp)
                 .align(Alignment.BottomStart)
+                .fillMaxSize()
         ) {
             Image(
                 painter = painterResource(id = R.drawable.hannahnelson), // Placeholder image
@@ -241,7 +287,8 @@ fun ArtisanCard(artisan: Artisan, modifier: Modifier = Modifier) {
                         offsetX = 3.dp
                     )
                     .clip(RoundedCornerShape(10.dp))
-                    .size(450.dp, 60.dp)
+                    .width(550.dp)
+                    .height(60.dp)
                     .background(Color.White)
                     .padding(10.dp)
             ) {
@@ -267,13 +314,8 @@ fun ArtisanCard(artisan: Artisan, modifier: Modifier = Modifier) {
         }
     }
 }
-
-
-
-
-
 @Composable
-fun Sidebar(navController: NavController, name: String?, onClose: () -> Unit) {
+fun Sidebar(navController: NavController, name: String?, isClient: Boolean, onClose: () -> Unit) {
     Box (
         modifier = Modifier
             .fillMaxHeight()
@@ -285,11 +327,15 @@ fun Sidebar(navController: NavController, name: String?, onClose: () -> Unit) {
                 .width(250.dp)
                 .background(Color.White)
         ) {
-            ProfileSection(name = name)
+            ProfileSection(name = name, isClient = isClient ?: false)
             Divider(color = Color.LightGray, thickness = 1.dp)
             Spacer(modifier = Modifier.height(16.dp))
-            MenuItem(icon = Icons.Default.Notifications, text = "Assigned Jobs")
-            MenuItem(icon = Icons.Default.Star, text = "Reviews")
+            MenuItemClickable(icon = Icons.Default.Notifications, text = if (isClient) "Jobs given" else "Assigned Jobs") {
+                if (isClient) navController.navigate("jobsgiven_screen/$name") else navController.navigate("assigned_screen/$name")
+            }
+            MenuItemClickable(icon = Icons.Default.Star, text = if (isClient) "Review" else "Reviews") {
+                if (isClient) navController.navigate("reviewjobs_screen/$name") else navController.navigate("yourreviews_screen/$name")
+            }
             Spacer(modifier = Modifier.weight(1f))
             Divider(color = Color.LightGray, thickness = 1.dp)
             MenuItemClickable(icon = Icons.Default.ExitToApp, text = "Logout") {
@@ -311,9 +357,7 @@ fun Sidebar(navController: NavController, name: String?, onClose: () -> Unit) {
         )
     }
     CloseButton(onClose)
-
 }
-
 fun logout() {
     val firebaseauth = FirebaseAuth.getInstance()
     firebaseauth.signOut()
@@ -325,9 +369,8 @@ fun logout() {
     }
     firebaseauth.addAuthStateListener(authStateListener)
 }
-
 @Composable
-fun ProfileSection(name: String?) {
+fun ProfileSection(name: String?, isClient: Boolean) {
     Column(
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.Center
@@ -340,14 +383,13 @@ fun ProfileSection(name: String?) {
                 .size(80.dp)
                 .clip(CircleShape)
                 .align(Alignment.CenterHorizontally)
-                .clickable { navController.navigate("profile/$name") }
+                .clickable {  if (isClient) navController.navigate("profile/$name") else navController.navigate("artisanProfile/$name") }
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = "${name}", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         Text(text = "View Profile", textAlign = TextAlign.Center, color = Color.Gray)
     }
 }
-
 @Composable
 fun MenuItem(icon: ImageVector, text: String) {
     Row(
@@ -381,7 +423,6 @@ fun MenuItemClickable(icon: ImageVector, text: String, onClick: () -> Unit) {
         Text(text = text)
     }
 }
-
 @Composable
 fun CloseButton(onClose: () -> Unit) {
     Column(
@@ -402,6 +443,32 @@ fun CloseButton(onClose: () -> Unit) {
     }
 }
 
+
+
+suspend fun determineUserRole(): String {
+    val uid = FirebaseAuth.getInstance().currentUser?.uid
+    if (uid.isNullOrEmpty()) {
+        // Handle case where user is not logged in or UID is null
+        return "Unknown"
+    }
+
+    val firestore = FirebaseFirestore.getInstance()
+
+    // Check if the UID exists in the artisans collection
+    val artisanDoc = firestore.collection("artisans").document(uid).get().await()
+    if (artisanDoc.exists()) {
+        return "Artisan"
+    }
+
+    // Check if the UID exists in the clients collection
+    val clientDoc = firestore.collection("clients").document(uid).get().await()
+    if (clientDoc.exists()) {
+        return "Client"
+    }
+
+    // If the UID does not exist in either collection, return "Unknown"
+    return "Unknown"
+}
 
 
 
@@ -442,8 +509,3 @@ fun Modifier.coloredShadow(
     }
 }
 
-//@Preview(showBackground = true)
-//@Composable
-//private fun contPrev() {
-//    MainContent()
-//}

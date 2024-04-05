@@ -414,13 +414,11 @@ fun DropdownList(itemList: List<String>, selectedIndex: Int, modifier: Modifier,
             modifier = modifier
                 .background(Color.White)
                 .clickable { showDropdown = true },
-//            .clickable { showDropdown = !showDropdown },
             contentAlignment = Alignment.Center
         ) {
             Text(text = itemList[selectedItemIndex], modifier = Modifier.padding(3.dp))
         }
 
-        // dropdown list
         Box() {
             if (showDropdown) {
                 Popup(
@@ -428,19 +426,15 @@ fun DropdownList(itemList: List<String>, selectedIndex: Int, modifier: Modifier,
                     properties = PopupProperties(
                         excludeFromSystemGesture = true,
                     ),
-                    // to dismiss on click outside
-                    onDismissRequest = { showDropdown = false }
+                    onDismissRequest = { showDropdown = false } // Remove this line
                 ) {
-
                     Column(
                         modifier = modifier
                             .heightIn(max = 90.dp)
-                            .verticalScroll(state = scrollState)
-                            .border(width = 1.dp, color = Color.Gray),
+                            .verticalScroll(state = scrollState),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-
-                        itemList.onEachIndexed { index, item ->
+                        itemList.forEachIndexed { index, item ->
                             if (index != 0) {
                                 Divider(thickness = 1.dp, color = Color.LightGray)
                             }
@@ -449,19 +443,22 @@ fun DropdownList(itemList: List<String>, selectedIndex: Int, modifier: Modifier,
                                     .background(Color.White)
                                     .fillMaxWidth()
                                     .clickable {
+                                        selectedItemIndex = index
                                         onItemSelected(itemList[index])
-                                        showDropdown = !showDropdown
+                                        showDropdown = false
+                                        // Remove the following line
+                                        // showDropdown = !showDropdown
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(text = item,)
                             }
                         }
-
                     }
                 }
             }
         }
+
     }
 
 }
