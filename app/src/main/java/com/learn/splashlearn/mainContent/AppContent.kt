@@ -160,6 +160,7 @@ fun MainContent(user: User?) {
             }
             Divider(color = Color.Black, thickness = 1.dp)
             LaunchedEffect(Unit) {
+                loading = true
                 val firestore = FirebaseFirestore.getInstance()
                 firestore.collection("artisans")
                     .get()
@@ -186,11 +187,14 @@ fun MainContent(user: User?) {
                 navController.navigate("review_screen/${artisan.name}")
             }
 
-
             if (loading) {
                 // Show loading indicator
                 CircularProgressIndicator(
-                    color = Color.Blue
+                    color = Color.Blue,
+                    modifier = Modifier
+                        .align(
+                            Alignment.CenterHorizontally
+                        )
                     )
             } else {
                 // Show LazyColumn with data

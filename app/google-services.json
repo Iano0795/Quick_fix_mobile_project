@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "502569294941",
+    "project_id": "quick-fix-b38e0",
+    "storage_bucket": "quick-fix-b38e0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502569294941:android:36ead30d0b25804e5941b4",
+        "android_client_info": {
+          "package_name": "com.learn.splashlearn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQog5onJX9aK0QpNvhAUgZYSFqmmynXwE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

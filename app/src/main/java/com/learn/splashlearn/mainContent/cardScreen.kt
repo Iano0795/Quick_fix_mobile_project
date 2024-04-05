@@ -33,6 +33,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -52,12 +53,16 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.Surface
 import androidx.compose.ui.window.Dialog
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.learn.splashlearn.AssignedJob
+import java.time.format.TextStyle
 import java.util.*
 
 
@@ -130,7 +135,7 @@ fun CardReviewScreen(artisan: Artisan?, user: User?) {
                     Text(text = "Assign Job", color = Color.White)
                 }
                 if (isDialogVisible) {
-                    JobAssignmentPopup(onDismiss = { isDialogVisible = false }, artisan)
+                    JobAssignmentPopup(onDismiss = { isDialogVisible = false }, artisan, user)
                 }
             }
         }
@@ -158,52 +163,63 @@ fun CardReviewScreen(artisan: Artisan?, user: User?) {
 
 
 
-data class AssignedJob(
-    val clientId: String,
-    val name: String,
-    val mobileNumber: String,
-    val jobDescription: String,
-    val date: Date = Calendar.getInstance().time
-)
 
-fun assignJob(artisan: Artisan, jobDescription: String) {
+
+fun assignJob(user: User?, artisan: Artisan, jobDescription: String, onComplete: (Boolean, String?) -> Unit) {
     val db = Firebase.firestore
     val auth = Firebase.auth
 
     // Get current user ID (client ID)
     val clientId = auth.currentUser?.uid ?: ""
 
-    // Create AssignedJob object
-    val assignedJob = AssignedJob(
-        clientId = clientId,
-        name = artisan.name,
-        mobileNumber = artisan.phoneNumber,
-        jobDescription = jobDescription
-    )
+    // Retrieve client's name from Firestore using client ID
+    db.collection("clients").document(clientId)
+        .get()
+        .addOnSuccessListener { clientDocument ->
+            val clientName = clientDocument.getString("name") ?: ""
 
-    // Add to assignedJobs collection with artisan's ID as document name
-    db.collection("assignedJobs")
-        .document(artisan.uid) // Using artisan's ID as the document name
-        .set(assignedJob)
-        .addOnSuccessListener {
-            // Add to pendingReview collection
-            db.collection("pendingReview")
-                .document(clientId)
+            // Create AssignedJob object with client's name
+            val assignedJob = AssignedJob(
+                artisanId  = artisan.uid,
+                clientName = clientName,
+                artisanName = artisan.name,
+                mobileNumber = artisan.phoneNumber,
+                jobDescription = jobDescription
+            )
+
+            // Add to assignedJobs collection with artisan's ID as document name
+            db.collection("assignedJobs")
+                .document("${artisan.name}_assigned_job_by_${clientName}")
                 .set(assignedJob)
                 .addOnSuccessListener {
-                    // Successfully added to both collections
-                    // You can show a toast or perform any UI update here
+                    // Add to pendingReview collection
+                    db.collection("pendingReview")
+                        .document("${clientName}_assigned_job_${artisan.name} ")
+                        .set(assignedJob)
+                        .addOnSuccessListener {
+                            // Successfully added to both collections
+                            // You can show a toast or perform any UI update here
+                            onComplete(true, null)
+                        }
+                        .addOnFailureListener { e ->
+                            // Failed to add to pendingReview collection
+                            // Handle error
+                            onComplete(false, e.message)
+                        }
                 }
                 .addOnFailureListener { e ->
-                    // Failed to add to pendingReview collection
+                    // Failed to add to assignedJobs collection
                     // Handle error
+                    onComplete(false, e.message)
                 }
         }
         .addOnFailureListener { e ->
-            // Failed to add to assignedJobs collection
+            // Failed to retrieve client's name
             // Handle error
+            onComplete(false, e.message)
         }
 }
+
 
 
 
@@ -283,14 +299,18 @@ fun ArtisanCardForReview(artisan: Artisan, modifier: Modifier = Modifier) {
 
 
 @Composable
-fun JobAssignmentPopup(onDismiss: () -> Unit, artisan: Artisan) {
+fun JobAssignmentPopup(onDismiss: () -> Unit, artisan: Artisan, user: User?) {
     var jobDescription by remember { mutableStateOf("") }
+    val context  = LocalContext.current
+    var loading by remember{ mutableStateOf<Boolean>(false) }
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
             color = Color.White,
             modifier = Modifier
                 .width(300.dp)
                 .height(250.dp)
+                .padding(16.dp),
+            shape = RoundedCornerShape(8.dp),
         ) {
             Column(
                 modifier = Modifier
@@ -300,12 +320,14 @@ fun JobAssignmentPopup(onDismiss: () -> Unit, artisan: Artisan) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = "Describe the job to be assigned")
-                BasicTextField(
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
                     value = jobDescription,
                     onValueChange = { jobDescription = it },
                     singleLine = false,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black)
                 )
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -314,8 +336,23 @@ fun JobAssignmentPopup(onDismiss: () -> Unit, artisan: Artisan) {
                     Button(onClick = { onDismiss() }) {
                         Text(text = "Dismiss")
                     }
-                    Button(onClick = { assignJob(artisan = artisan, jobDescription) }) {
-                        Text(text = "Submit")
+                    Button(onClick = {
+                        loading = true
+                        assignJob(user, artisan, jobDescription){
+                            success ,errorMessage->
+                            if(success){
+                                loading = false
+                                Toast.makeText(context, "Successfully assigned job to ${artisan.name}", Toast.LENGTH_LONG).show()
+                            }else{
+                                loading = false
+                                Toast.makeText(context, "Failed to assign due to $errorMessage", Toast.LENGTH_LONG).show()
+                            }
+                        } }) {
+                        if(loading){
+                            CircularProgressIndicator(color = Color.White)
+                        }else{
+                            Text(text = "Submit")
+                        }
                     }
                 }
             }

@@ -63,6 +63,23 @@ fun ClientLogin() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
+            text = "Enjoy Services❤️",
+            fontSize = 20.sp,
+            color = Color.Black,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clickable { navController.navigate("home_Screen") }
+        )
+        Text(
+            text = "From Talented Artisans👌",
+            fontSize = 20.sp,
+            color = Color.Black,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .padding(bottom = 10.dp)
+                .clickable { navController.navigate("home_Screen") }
+        )
+        Text(
             text = "Karibu",
             fontSize = 40.sp,
             color = Color.Black,

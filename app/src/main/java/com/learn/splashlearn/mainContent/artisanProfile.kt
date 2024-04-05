@@ -34,11 +34,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,9 +64,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
+import com.learn.splashlearn.Artisan
 import com.learn.splashlearn.Navigation
 import com.learn.splashlearn.R
 import com.learn.splashlearn.User
+
 @Composable
 fun artisanProfileScreen(user: User?) {
     val email = remember { mutableStateOf(TextFieldValue()) }
@@ -74,6 +78,7 @@ fun artisanProfileScreen(user: User?) {
     val showDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
     var pdfUri by remember { mutableStateOf<Uri?>(null) }
+    var uploading by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val data: Intent? = result.data
@@ -222,28 +227,40 @@ fun artisanProfileScreen(user: User?) {
             // Popup Dialog
             if (showDialog.value) {
                 Dialog(onDismissRequest = { showDialog.value = false }) {
-                    Surface(shape = RectangleShape) {
+                    Surface(
+                        color = Color.White,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.padding(10.dp).size(300.dp, 250.dp)
+                    ) {
                         Column(
                             modifier = Modifier
                                 .padding(5.dp)
-                                .size(400.dp),
+                                .fillMaxSize()
+                                .background(Color.LightGray, shape = RoundedCornerShape(8.dp)),
                             verticalArrangement = Arrangement.Center,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             IconButton(
                                 onClick = { showDialog.value = false },
-                                modifier = Modifier.align(Alignment.End)
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
                             ) {
                                 Icon(painter = painterResource(id = R.drawable.baseline_close_24), contentDescription = "Close")
                             }
-
-                            Button(
-                                onClick = { launcher.launch(createFilePickerIntent()) },
+                            Spacer(modifier = Modifier.height(20.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    uploading = true
+                                    launcher.launch(createFilePickerIntent()) },
                                 modifier = Modifier
                                     .padding(16.dp)
-                                    .size(250.dp, 40.dp)
+                                    .size(180.dp, 45.dp)
                             ) {
-                                Text(text = "Choose to Upload")
+                                if (uploading) {
+                                    Text(text = "Uploading...", color = Color.Black, fontSize = 15.sp)
+                                } else {
+                                    Text(text = "Choose to Upload", color = Color.Black, fontSize = 15.sp)
+                                }
                             }
                         }
                     }
@@ -276,7 +293,16 @@ fun artisanProfileScreen(user: User?) {
 
             LaunchedEffect(pdfUri) {
                 if (pdfUri != null) {
-                    uploadPdfToFirebase(context, pdfUri!!)
+                    uploadPdfToFirebase(context, pdfUri!!, user){
+                        success, errorMessage ->
+                        if(success){
+                            uploading = false
+                            Toast.makeText(context, "PDF uploaded successfully", Toast.LENGTH_SHORT).show()
+                        }else{
+                            uploading = false
+                            Toast.makeText(context, "Failed to upload PDF: $errorMessage", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
@@ -406,17 +432,22 @@ private fun createFilePickerIntent(): Intent {
 }
 
 // Function to upload PDF file to Firebase Storage
-private fun uploadPdfToFirebase(context: Context, pdfUri: Uri) {
+private fun uploadPdfToFirebase(context: Context, pdfUri: Uri, user: User?, onComplete: (Boolean, String?) -> Unit) {
     val storageRef = Firebase.storage.reference
-    val fileName = "example_${System.currentTimeMillis()}.pdf" // Add timestamp to the filename
+    val name = user?.name ?: ""
+    val fileName = "${name}_${System.currentTimeMillis()}.pdf" // Add timestamp to the filename
     val fileRef = storageRef.child("certifications/$fileName") // Adjusted path to certifications folder
 
     // Upload the file
     fileRef.putFile(pdfUri)
         .addOnSuccessListener { _ ->
-            Toast.makeText(context, "PDF uploaded successfully", Toast.LENGTH_SHORT).show()
+            onComplete(true, null)
+
+
         }
         .addOnFailureListener { exception ->
-            Toast.makeText(context, "Failed to upload PDF: ${exception.message}", Toast.LENGTH_SHORT).show()
+            onComplete(false, exception.message)
+
+
         }
 }

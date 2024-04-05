@@ -215,7 +215,6 @@ fun ProfileScreen(user: User?) {
         }
     }
 }
-
 @Composable
 fun clientPasswordDialog(context: Context, name: String, email: String, mobileNo: String, onDismiss: () -> Unit) {
     var password by remember { mutableStateOf(TextFieldValue()) }
@@ -223,6 +222,7 @@ fun clientPasswordDialog(context: Context, name: String, email: String, mobileNo
 
     Dialog(onDismissRequest = { onDismiss() }) {
         Surface(
+            color = Color.White,
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier.padding(16.dp)
         ) {
@@ -270,10 +270,6 @@ fun clientPasswordDialog(context: Context, name: String, email: String, mobileNo
         }
     }
 }
-
-
-
-
 fun updateDetails(context: Context, name: String, email: String, mobileNo: String, password: String) {
     val db = FirebaseFirestore.getInstance()
     val userCollection = db.collection("clients")
