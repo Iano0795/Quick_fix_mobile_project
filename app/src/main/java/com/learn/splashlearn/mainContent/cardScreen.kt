@@ -180,6 +180,7 @@ fun assignJob(user: User?, artisan: Artisan, jobDescription: String, onComplete:
 
             // Create AssignedJob object with client's name
             val assignedJob = AssignedJob(
+                clientId = clientId,
                 artisanId  = artisan.uid,
                 clientName = clientName,
                 artisanName = artisan.name,

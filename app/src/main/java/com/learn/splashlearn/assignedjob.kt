@@ -4,6 +4,7 @@ import java.util.Calendar
 import java.util.Date
 
 data class AssignedJob(
+    val clientId: String,
     val artisanId: String,
     val clientName: String,
     val artisanName: String,
