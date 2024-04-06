@@ -63,6 +63,7 @@ import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.learn.splashlearn.login.clisInternetConnected
 
 @Composable
 fun ProfileScreen(user: User?) {
@@ -94,7 +95,17 @@ fun ProfileScreen(user: User?) {
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .clickable { navController.navigate("dashboard/$name") }
+                        .clickable {
+                            if(clisInternetConnected(context)){
+                                navController.navigate("dashboard/$name")
+                            }else{
+                                Toast.makeText(
+                                    context,
+                                    "Please check your internet connection and try again.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                             }
                 )
 
                 Box(
@@ -215,6 +226,7 @@ fun ProfileScreen(user: User?) {
         }
     }
 }
+
 @Composable
 fun clientPasswordDialog(context: Context, name: String, email: String, mobileNo: String, onDismiss: () -> Unit) {
     var password by remember { mutableStateOf(TextFieldValue()) }

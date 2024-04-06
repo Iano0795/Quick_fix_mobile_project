@@ -197,7 +197,7 @@ fun ClientLogin() {
                         }
                     }
 
-                }else{
+                } else{
                     Toast.makeText(
                         context,
                         "Please check your internet connection and try again.",
