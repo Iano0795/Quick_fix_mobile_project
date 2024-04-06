@@ -105,7 +105,7 @@ fun ProfileScreen(user: User?) {
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
-                             }
+                        }
                 )
 
                 Box(
@@ -220,9 +220,7 @@ fun ProfileScreen(user: User?) {
                     }
                     Text(text = "Logout")
                 }
-
             }
-
         }
     }
 }

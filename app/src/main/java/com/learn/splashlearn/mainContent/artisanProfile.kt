@@ -66,8 +66,10 @@ import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import com.learn.splashlearn.Artisan
 import com.learn.splashlearn.Navigation
+import com.learn.splashlearn.Navigation.navController
 import com.learn.splashlearn.R
 import com.learn.splashlearn.User
+import com.learn.splashlearn.login.clisInternetConnected
 
 @Composable
 fun artisanProfileScreen(user: User?) {
@@ -113,7 +115,17 @@ fun artisanProfileScreen(user: User?) {
                     contentDescription = null,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .clickable { Navigation.navController.navigate("dashboard/$name") }
+                        .clickable {
+                            if(clisInternetConnected(context)){
+                                navController.navigate("dashboard/$name")
+                            }else{
+                                Toast.makeText(
+                                    context,
+                                    "Please check your internet connection and try again.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                 )
 
                 Box(
