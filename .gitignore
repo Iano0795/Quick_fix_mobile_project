@@ -9,8 +9,8 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 /build
+/app/google-services.json
 /captures
 .externalNativeBuild
 .cxx
 local.properties
-C:\Users\Legend\AndroidStudioProjects\SplashLearn\app\google-services.json
