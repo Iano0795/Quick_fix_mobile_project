@@ -5,6 +5,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
@@ -26,12 +27,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -61,7 +65,15 @@ fun ClientRegScreen() {
     val confirmPasswordErrorState = remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
-
+    Box(modifier = Modifier
+        .fillMaxSize()){
+        Image(
+            painter = painterResource(id = R.drawable.img_2),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.matchParentSize()
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -70,14 +82,20 @@ fun ClientRegScreen() {
         verticalArrangement = Arrangement.Center,
     ) {
 
-        Text(text = buildAnnotatedString {
-            withStyle(style = SpanStyle(color = Color.Blue)) {
-                append("Client ")
-            }
-            withStyle(style = SpanStyle(color = Color.Black)) {
-                append("Registration")
-            }
-        }, fontSize = 30.sp, modifier = Modifier.clickable{ navController.navigate("home_Screen")})
+        Text(
+            text = buildAnnotatedString {
+                withStyle(style = SpanStyle(color = Color.Black)) {
+                    append("Client")
+                }
+                withStyle(style = SpanStyle(color = Color.Black)) {
+                    append("Registration")
+                }
+            },
+            fontSize = 30.sp,
+            modifier = Modifier.clickable { navController.navigate("home_Screen") },
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.Center
+        )
         Spacer(Modifier.size(16.dp))
         OutlinedTextField(
             value = name.value,
@@ -318,7 +336,7 @@ fun ClientRegScreen() {
                     launchSingleTop = true
                 }
             }) {
-                Text(text = "Login", color = Color.Blue)
+                Text(text = "Login", color = Color.White)
             }
         }
     }

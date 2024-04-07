@@ -1,10 +1,12 @@
 package com.learn.splashlearn.register
 
 import android.content.Context
+import android.graphics.Paint
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,16 +36,20 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.learn.splashlearn.Navigation
@@ -67,12 +73,25 @@ fun RegistrationScreen() {
     var selectedWork by remember { mutableStateOf(" ") }
     val itemList = listOf<String>("Plumber", "Carpenter", "Tailor")
     var selectedIndex by rememberSaveable { mutableStateOf(0) }
-    var buttonModifier = Modifier.width(300.dp).height(60.dp).clip(RoundedCornerShape(10.dp))
+    var buttonModifier = Modifier
+        .width(300.dp)
+        .height(60.dp)
+        .clip(RoundedCornerShape(10.dp))
     val nameErrorState = remember { mutableStateOf(false) }
     val emailErrorState = remember { mutableStateOf(false) }
     val passwordErrorState = remember { mutableStateOf(false) }
     val confirmPasswordErrorState = remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
+    Box(modifier = Modifier
+        .height(300.dp)
+        .fillMaxWidth()){
+        Image(
+            painter = painterResource(id = R.drawable.img_3),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.matchParentSize()
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -81,15 +100,7 @@ fun RegistrationScreen() {
             .verticalScroll(scrollState),
         verticalArrangement = Arrangement.Center,
     ) {
-
-        Text(text = buildAnnotatedString {
-            withStyle(style = SpanStyle(color = Color.Blue)) {
-                append("Artisan")
-            }
-            withStyle(style = SpanStyle(color = Color.Black)) {
-                append("Registration")
-            }
-        }, fontSize = 30.sp, modifier = Modifier.clickable{ navController.navigate("home_Screen")})
+        CustomClickableText(navController, "Artisan", "Registration")
         Spacer(Modifier.size(16.dp))
         OutlinedTextField(
             value = name.value,
@@ -105,7 +116,7 @@ fun RegistrationScreen() {
             label = {
                 Text(text = "Name*")
             },
-            textStyle = TextStyle(color = Color.Black)
+            textStyle = TextStyle(color = Color.White)
         )
         if (nameErrorState.value) {
             Text(text = "Required", color = Color.Red)
@@ -126,7 +137,7 @@ fun RegistrationScreen() {
             label = {
                 Text(text = "Email*")
             },
-            textStyle = TextStyle(color = Color.Black)
+            textStyle = TextStyle(color = Color.White)
         )
         if (emailErrorState.value) {
             Text(text = "Required", color = Color.Red)
@@ -191,7 +202,7 @@ fun RegistrationScreen() {
                             id = R.drawable.visibility
                         ),
                         contentDescription = "visibility",
-                        tint = Color.Black
+                        tint = Color.White
                     )
                 }
             },
@@ -232,7 +243,7 @@ fun RegistrationScreen() {
                             id = R.drawable.visibility
                         ),
                         contentDescription = "visibility",
-                        tint = Color.Black
+                        tint = Color.White
                     )
                 }
             },
@@ -337,6 +348,24 @@ fun RegistrationScreen() {
             }
         }
     }
+}
+
+@Composable
+fun CustomClickableText(navController: NavController, firstText: String, secondText: String) {
+    Text(
+        text = buildAnnotatedString {
+            withStyle(style = SpanStyle(color = Color.White)) {
+                append(firstText)
+            }
+            withStyle(style = SpanStyle(color = Color.White)) {
+                append(secondText)
+            }
+        },
+        fontSize = 30.sp,
+        modifier = Modifier.clickable { navController.navigate("home_Screen") },
+        fontWeight = FontWeight.ExtraBold,
+        textAlign = TextAlign.Center
+    )
 }
 fun createUserWithEmail(
     email: String,

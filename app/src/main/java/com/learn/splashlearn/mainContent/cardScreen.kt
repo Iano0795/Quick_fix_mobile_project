@@ -29,10 +29,12 @@ import com.learn.splashlearn.Artisan
 import com.learn.splashlearn.R
 import android.Manifest
 import android.app.Activity
+import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
@@ -49,6 +51,8 @@ import androidx.core.content.ContextCompat
 import com.learn.splashlearn.Navigation
 import com.learn.splashlearn.User
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -57,11 +61,15 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.learn.splashlearn.AssignedJob
+import com.learn.splashlearn.Review
+import java.text.SimpleDateFormat
 import java.time.format.TextStyle
 import java.util.*
 
@@ -70,11 +78,45 @@ const val REQUEST_CALL_PERMISSION_CODE = 1001 // You can use any integer value h
 
 @Composable
 fun CardReviewScreen(artisan: Artisan?, user: User?) {
-    val name = user?.name ?: ""
+    val db = Firebase.firestore
+    var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
     artisan ?: return
+    val auth = Firebase.auth
+    val id = auth.currentUser?.uid ?: ""
     val context = LocalContext.current
     var isClient by remember { mutableStateOf<Boolean?>(null) }
     var isDialogVisible by remember { mutableStateOf(false) }
+    val currentUserId = auth.currentUser?.uid ?: ""
+    var currentUserName by remember { mutableStateOf("") }
+    var loading by remember { mutableStateOf(false) }
+
+
+    // Check if the current user is an artisan
+    db.collection("artisans").document(currentUserId)
+        .get()
+        .addOnSuccessListener { document ->
+            if (document.exists()) {
+                // User is an artisan, retrieve the name from the artisans collection
+                val artisanName = document.getString("name") ?: ""
+                currentUserName = artisanName
+            } else {
+                // User is not an artisan, retrieve the name from the clients collection
+                db.collection("clients").document(currentUserId)
+                    .get()
+                    .addOnSuccessListener { clientDocument ->
+                        val clientName = clientDocument.getString("name") ?: ""
+                        currentUserName = clientName
+                    }
+                    .addOnFailureListener { e ->
+                        // Handle failure to retrieve client's name
+                        Log.e(TAG, "Failed to retrieve client's name: ${e.message}")
+                    }
+            }
+        }
+        .addOnFailureListener { e ->
+            // Handle failure to retrieve artisan's name
+            Log.e(TAG, "Failed to retrieve artisan's name: ${e.message}")
+        }
     fun showDialog() {
         isDialogVisible = true
     }
@@ -140,11 +182,60 @@ fun CardReviewScreen(artisan: Artisan?, user: User?) {
             }
         }
         Divider(color = Color.Black, thickness = 1.dp)
+        LaunchedEffect(Unit) {
+            loading = true
+            val firestore = FirebaseFirestore.getInstance()
+            firestore.collection("reviews")
+                .get()
+                .addOnSuccessListener { documents ->
+                    val newReviews = documents.map { document ->
+                        val clientName = document.getString("clientName") ?: ""
+                        val artisanId = document.getString("artisanId") ?: ""
+                        val timestamp = document.getTimestamp("date")
+                        val date = timestamp?.toDate() ?: Date()
+                        val content = document.getString("content")?.toString() ?: ""
+                        val job = document.getString("job") ?: ""
+                        Review("", artisanId, clientName, date, content, job)
+                    }
+                    reviews = newReviews.filter { it.artisanId == artisan.uid }
+                    loading = false
+                }
+                .addOnFailureListener { exception ->
+                    // Handle failure
+                    Toast.makeText(context, exception.message, Toast.LENGTH_LONG).show()
+                    loading = false
+                }
+        }
+        if (loading) {
+            // Show loading indicator
+            CircularProgressIndicator(
+                color = Color.Blue,
+                modifier = Modifier
+                    .align(
+                        Alignment.CenterHorizontally
+                    )
+            )
+        } else {
+            // Show LazyColumn with data
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(500.dp)
+                    .padding(15.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                items(reviews) { review ->
+                    CardReview(review)
+                }
+            }
+        }
         Spacer(modifier = Modifier.weight(1f))
         CircularIconButton(
             icon = Icons.Default.ArrowBack,
             contentDescription = "Close button",
-            onClick = { Navigation.navController.navigate("dashboard/$name") },
+            onClick = { Navigation.navController.navigate("dashboard/${currentUserName}")
+            },
             modifier = Modifier
                 .coloredShadow(
                     color = Color.Black,
@@ -163,6 +254,65 @@ fun CardReviewScreen(artisan: Artisan?, user: User?) {
 
 
 
+@Composable
+fun CardReview(review: Review) {
+    val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+    val formattedDate = dateFormat.format(review.date)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = review.clientName,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = formattedDate,
+                    fontSize = 14.sp
+
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Job done:",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+            Text(
+                text = review.job,
+                modifier = Modifier.padding(8.dp),
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Review from client:",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+            Text(
+                text = review.content,
+                modifier = Modifier.padding(8.dp),
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+        }
+    }
+}
 
 
 fun assignJob(user: User?, artisan: Artisan, jobDescription: String, onComplete: (Boolean, String?) -> Unit) {
@@ -185,7 +335,8 @@ fun assignJob(user: User?, artisan: Artisan, jobDescription: String, onComplete:
                 clientName = clientName,
                 artisanName = artisan.name,
                 mobileNumber = artisan.phoneNumber,
-                jobDescription = jobDescription
+                jobDescription = jobDescription,
+                jobId = ""
             )
 
             // Add to assignedJobs collection with artisan's ID as document name
@@ -220,10 +371,6 @@ fun assignJob(user: User?, artisan: Artisan, jobDescription: String, onComplete:
             onComplete(false, e.message)
         }
 }
-
-
-
-
 @Composable
 fun ArtisanCardForReview(artisan: Artisan, modifier: Modifier = Modifier) {
     Box(
@@ -294,11 +441,6 @@ fun ArtisanCardForReview(artisan: Artisan, modifier: Modifier = Modifier) {
         }
     }
 }
-
-
-
-
-
 @Composable
 fun JobAssignmentPopup(onDismiss: () -> Unit, artisan: Artisan, user: User?) {
     var jobDescription by remember { mutableStateOf("") }
@@ -360,9 +502,6 @@ fun JobAssignmentPopup(onDismiss: () -> Unit, artisan: Artisan, user: User?) {
         }
     }
 }
-
-
-
 fun handleCallAction(context: Context, phoneNumber: String?) {
 
     if (ContextCompat.checkSelfPermission(

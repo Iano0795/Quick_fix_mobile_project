@@ -1,5 +1,7 @@
 package com.learn.splashlearn.mainContent
 
+import android.content.ContentValues.TAG
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -70,6 +72,7 @@ fun ReviewJobs(user: User?) {
     val clientId = auth.currentUser?.uid ?: ""
     val context = LocalContext.current
     var jobs by remember { mutableStateOf<List<AssignedJob>>(emptyList()) }
+    val reviewedJobIds by remember { mutableStateOf(mutableSetOf<String>()) }
     LaunchedEffect(Unit) {
         loading = true
         val firestore = FirebaseFirestore.getInstance()
@@ -78,14 +81,15 @@ fun ReviewJobs(user: User?) {
             .get()
             .addOnSuccessListener { documents ->
                 val newJobs = documents.map { document ->
-                    val artId = document.getString("artisanId")
+                    val jobId = document.id
+                    val artId = document.getString("artisanId") ?: ""
                     val clientName = document.getString("clientName") ?: ""
                     val timestamp = document.getTimestamp("date")
                     val date = timestamp?.toDate() ?: Date()
                     val jobDescription = document.getString("jobDescription") ?: ""
-                    AssignedJob(clientId, "", clientName, name, "", jobDescription, date)
+                    AssignedJob(clientId, artId, clientName, name, "", jobDescription, date, jobId)
                 }
-                jobs = newJobs
+                jobs = newJobs.filter { !reviewedJobIds.contains(it.jobId) }
                 loading = false
             }
             .addOnFailureListener { exception ->
@@ -129,11 +133,11 @@ fun ReviewJobs(user: User?) {
                         .padding(15.dp)
                 ) {
                     itemsIndexed(jobs) { _, job ->
-                        ReviewCard(job)
+                        ReviewCard(job) { reviewedJobIds.add(job.jobId) }
                     }
                 }
             }
-            
+
         }
         CircularIconButton(
             icon = Icons.Default.ArrowBack,
@@ -154,9 +158,39 @@ fun ReviewJobs(user: User?) {
 }
 
 @Composable
-fun ReviewCard(job: AssignedJob) {
+fun ReviewCard(job: AssignedJob, onReviewSubmitted: () -> Unit) {
     val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
     val formattedDate = dateFormat.format(job.date)
+    var isDialogVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val db = Firebase.firestore
+    var artisan by remember { mutableStateOf("") }
+
+    // Fetch artisan details
+    db.collection("assignedJobs")
+        .whereEqualTo("artisanId", job.artisanId)
+        .get()
+        .addOnSuccessListener{documents ->
+            if (!documents.isEmpty) {
+                val document = documents.documents[0]
+                val artisanName = document.getString("artisanName") ?: ""
+                artisan = artisanName
+            } else {
+                Toast.makeText(context, "Artisan not available", Toast.LENGTH_SHORT).show()
+            }
+        }
+        .addOnFailureListener { exception ->
+            Toast.makeText(context, "Error: ${exception.message}", Toast.LENGTH_SHORT).show()
+        }
+
+    fun showDialog() {
+        isDialogVisible = true
+    }
+
+    fun onSubmitReview() {
+        showDialog()
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -175,7 +209,7 @@ fun ReviewCard(job: AssignedJob) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = job.artisanName,
+                    text = artisan,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -199,19 +233,31 @@ fun ReviewCard(job: AssignedJob) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
-                onClick = {  },
+                onClick = { onSubmitReview() },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
-                Text(text = "Pay and Review", color = Color.White)
+                Text(text = "Review", color = Color.White)
+            }
+            if (isDialogVisible) {
+                ReviewPopup(
+                    onDismiss = {
+                        isDialogVisible = false
+                        // Invoke the callback when review is submitted
+                        onReviewSubmitted()
+                    },
+                    job,
+                    job.clientName
+                )
             }
         }
     }
 }
 
+
 @Composable
-fun ReviewPopup(onDismiss: () -> Unit) {
+fun ReviewPopup(onDismiss: () -> Unit, job: AssignedJob, clientName: String) {
     var reviewDescription by remember { mutableStateOf("") }
     val context  = LocalContext.current
     var loading by remember{ mutableStateOf<Boolean>(false) }
@@ -231,7 +277,7 @@ fun ReviewPopup(onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Describe the job to be assigned")
+                Text(text = "Review the Job")
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = reviewDescription,
@@ -239,7 +285,7 @@ fun ReviewPopup(onDismiss: () -> Unit) {
                     singleLine = false,
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                     modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(color = Color.Black)
+                    textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black)
                 )
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -249,10 +295,23 @@ fun ReviewPopup(onDismiss: () -> Unit) {
                         Text(text = "Dismiss")
                     }
                     Button(onClick = {
+                        Log.d(TAG, "Client Name: $clientName")
                         loading = true
-                        review(reviewDescription)
-                    }) {
-                        Text(text = "Review")
+                        reviewJob(job,  clientName, reviewDescription){
+                                success ,errorMessage->
+                            if(success){
+                                loading = false
+                                Toast.makeText(context, "Successfully reviewed the job", Toast.LENGTH_LONG).show()
+                            }else{
+                                loading = false
+                                Toast.makeText(context, "Failed to review $errorMessage", Toast.LENGTH_LONG).show()
+                            }
+                        } }) {
+                        if(loading){
+                            CircularProgressIndicator(color = Color.White)
+                        }else{
+                            Text(text = "Submit")
+                        }
                     }
                 }
             }
@@ -260,45 +319,30 @@ fun ReviewPopup(onDismiss: () -> Unit) {
     }
 }
 
-fun review(reviewDescription: String, date, review: Review, artisan: Artisan, user: User?, onComplete: (Boolean, String?) -> Unit) {
-    val name = user?.name ?: ""
+fun reviewJob(job: AssignedJob, clientName: String, reviewDescription: String, onComplete: (Boolean, String?) -> Unit){
     val db = Firebase.firestore
     val auth = Firebase.auth
-
-    // Get current user ID (client ID)
     val clientId = auth.currentUser?.uid ?: ""
+    if (job.artisanId != null) {
+        val review = Review(
+            clientId = clientId,
+            artisanId = job.artisanId!!, // Use !! operator to assert non-nullability
+            clientName = clientName,
+            content = reviewDescription,
+            job = job.jobDescription
+        )
 
-    // Retrieve client's name from Firestore using client ID
-    db.collection("clients").document(clientId)
-        .get()
-        .addOnSuccessListener { clientDocument ->
-            val clientName = clientDocument.getString("name") ?: ""
-
-            // Create AssignedJob object with client's name
-            val reviewData = Review(
-                clientId = clientId,
-                artisanId = artisan.uid,
-                clientName = name,
-
-            )
-
-            // Add to assignedJobs collection with artisan's ID as document name
-            db.collection("assignedJobs")
-                .document("$${clientName}_reviewed_${artisan.name}")
-                .set(review)
-                .addOnSuccessListener {
-                    // Add to pendingReview collection
-                    onComplete(true, null)
-                }
-                .addOnFailureListener { e ->
-                    // Failed to add to assignedJobs collection
-                    // Handle error
-                    onComplete(false, e.message)
-                }
-        }
-        .addOnFailureListener { e ->
-            // Failed to retrieve client's name
-            // Handle error
-            onComplete(false, e.message)
-        }
+        db.collection("reviews")
+            .document("Reviewed_by_${clientName}")
+            .set(review)
+            .addOnSuccessListener {
+                onComplete(true, null)
+            }.addOnFailureListener { e ->
+                // Failed to add to pendingReview collection
+                // Handle error
+                onComplete(false, e.message)
+            }
+    } else {
+        onComplete(false, "Artisan ID is null")
+    }
 }

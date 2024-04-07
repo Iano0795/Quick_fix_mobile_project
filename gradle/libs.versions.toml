@@ -1,4 +1,5 @@
 [versions]
+accompanistCoilVersion = "<version>"
 activityComposeVersion = "1.3.0-alpha06"
 agp = "8.3.0"
 kotlin = "1.9.0"
@@ -18,6 +19,7 @@ firebaseStorageKtx = "20.3.0"
 [libraries]
 androidx-activity-compose-v130alpha06 = { module = "androidx.activity:activity-compose", version.ref = "activityComposeVersion" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+google-accompanist-coil = { module = "com.google.accompanist:accompanist-coil", version.ref = "accompanistCoilVersion" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

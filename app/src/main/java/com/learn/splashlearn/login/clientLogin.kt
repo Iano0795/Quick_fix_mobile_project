@@ -7,8 +7,11 @@ import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -54,11 +58,18 @@ fun ClientLogin() {
     var loading by remember { mutableStateOf(false) }
     val emailErrorState = remember { mutableStateOf(false) }
     val passwordErrorState = remember { mutableStateOf(false) }
-
+    Image(
+        painter = painterResource(id = R.drawable.carpenter), contentDescription = null,
+        modifier = Modifier
+            .fillMaxSize(),
+        contentScale = ContentScale.Crop
+    )
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFADD8E6).copy(alpha = 0.8f)))
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            ,
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -100,7 +111,7 @@ fun ClientLogin() {
             modifier = Modifier.fillMaxWidth(),
             isError = emailErrorState.value,
             label = {
-                Text(text = "Email*")
+                Text(text = "Email*", color = Color.Black)
             },
             textStyle = TextStyle(color = Color.Black)
         )
@@ -116,7 +127,7 @@ fun ClientLogin() {
             },
             modifier = Modifier.fillMaxWidth(),
             label = {
-                Text(text = "Password*")
+                Text(text = "Password*", color = Color.Black)
             },
             isError = passwordErrorState.value,
             trailingIcon = {

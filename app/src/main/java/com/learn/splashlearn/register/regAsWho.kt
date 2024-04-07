@@ -1,5 +1,7 @@
 package com.learn.splashlearn.register
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,18 +16,33 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.learn.splashlearn.Navigation
+import com.learn.splashlearn.R
 
 @Composable
 fun RegAsWho() {
     val navController = Navigation.navController
+    Image(
+        painter = painterResource(id = R.drawable.tailor), contentDescription = null,
+        modifier = Modifier
+            .fillMaxSize(),
+        contentScale = ContentScale.Crop
+    )
+    Box(
+        modifier = Modifier.background(Color.White.copy(alpha = 0.8f)).fillMaxSize()
+    ){
+
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(40.dp, 70.dp)
+
     ){
 
         Text(text = "Register As",
@@ -42,13 +59,13 @@ fun RegAsWho() {
             horizontalAlignment = Alignment.CenterHorizontally
         ){
             OutlinedButton(onClick = { navController.navigate("clientReg_screen") },
-                modifier = Modifier.size(150.dp, 40.dp)
+                modifier = Modifier.size(250.dp, 60.dp)
             ) {
-                Text("Client", color = Color.Black)
+                Text("Client", color = Color.Black, fontSize = 20.sp)
             }
             OutlinedButton(onClick = { navController.navigate("Register_screen") },
-                modifier = Modifier.size(150.dp, 40.dp)) {
-                Text("Artisan", color = Color.Black)
+                modifier = Modifier.size(250.dp, 60.dp)) {
+                Text("Artisan", color = Color.Black, fontSize = 20.sp)
             }
         }
     }

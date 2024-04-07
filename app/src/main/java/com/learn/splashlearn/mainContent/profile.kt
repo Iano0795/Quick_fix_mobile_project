@@ -1,6 +1,7 @@
 package com.learn.splashlearn.mainContent
 
 
+import android.content.ContentResolver
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -54,16 +55,32 @@ import com.google.firebase.storage.ktx.storage
 import com.learn.splashlearn.Navigation.navController
 import com.learn.splashlearn.User
 import android.content.Context
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.net.Uri
+import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.TextStyle
+import androidx.core.content.ContextCompat
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.learn.splashlearn.login.clisInternetConnected
+import java.io.ByteArrayOutputStream
+//import java.util.jar.Manifest
+import android.Manifest
+import androidx.compose.ui.res.imageResource
+
+//import android.content.pm.PackageManager
+
 
 @Composable
 fun ProfileScreen(user: User?) {
@@ -71,7 +88,6 @@ fun ProfileScreen(user: User?) {
     val name = user?.name ?: ""
     val mobileNo = remember { mutableStateOf(TextFieldValue()) }
     val context = LocalContext.current
-    var loading by remember { mutableStateOf(false) }
     var isPasswordDialogVisible by remember { mutableStateOf(false) }
     fun showPasswordDialog() {
         isPasswordDialogVisible = true
@@ -96,14 +112,16 @@ fun ProfileScreen(user: User?) {
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .clickable {
-                            if(clisInternetConnected(context)){
+                            if (clisInternetConnected(context)) {
                                 navController.navigate("dashboard/$name")
-                            }else{
-                                Toast.makeText(
-                                    context,
-                                    "Please check your internet connection and try again.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                            } else {
+                                Toast
+                                    .makeText(
+                                        context,
+                                        "Please check your internet connection and try again.",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show()
                             }
                         }
                 )

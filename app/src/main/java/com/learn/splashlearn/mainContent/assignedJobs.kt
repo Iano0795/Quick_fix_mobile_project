@@ -79,7 +79,7 @@ fun AssignedJobs(user: User?) {
                     val timestamp = document.getTimestamp("date")
                     val date = timestamp?.toDate() ?: Date()
                     val jobDescription = document.getString("jobDescription") ?: ""
-                    AssignedJob("", artisanId, clientName, name, "", jobDescription, date)
+                    AssignedJob("", artisanId, clientName, name, "", jobDescription, date, "")
                 }
                 jobs = newJobs
                 loading = false

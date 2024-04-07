@@ -70,6 +70,8 @@ import com.learn.splashlearn.Navigation.navController
 import com.learn.splashlearn.R
 import com.learn.splashlearn.User
 import com.learn.splashlearn.login.clisInternetConnected
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.painter.Painter
 
 @Composable
 fun artisanProfileScreen(user: User?) {
@@ -80,6 +82,7 @@ fun artisanProfileScreen(user: User?) {
     val showDialog = remember { mutableStateOf(false) }
     val context = LocalContext.current
     var pdfUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
     var uploading by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -92,6 +95,18 @@ fun artisanProfileScreen(user: User?) {
             }
         }
     }
+    val imageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data: Intent? = result.data
+            val uri: Uri? = data?.data
+            if (uri != null) {
+                imageUri = uri
+            } else {
+                Toast.makeText(context, "Failed to retrieve PDF", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     var isPasswordDialogVisible by remember { mutableStateOf(false) }
     fun showPasswordDialog() {
         isPasswordDialogVisible = true
@@ -116,14 +131,16 @@ fun artisanProfileScreen(user: User?) {
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .clickable {
-                            if(clisInternetConnected(context)){
+                            if (clisInternetConnected(context)) {
                                 navController.navigate("dashboard/$name")
-                            }else{
-                                Toast.makeText(
-                                    context,
-                                    "Please check your internet connection and try again.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                            } else {
+                                Toast
+                                    .makeText(
+                                        context,
+                                        "Please check your internet connection and try again.",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                    .show()
                             }
                         }
                 )
@@ -133,8 +150,10 @@ fun artisanProfileScreen(user: User?) {
                         .align(Alignment.Center)
                         .padding(end = 16.dp, bottom = 16.dp)
                 ) {
+//                    val imageUrl = imageUri ?: Uri.parse("android.resource://com.learn.splashlearn/drawable/img_1")
+//                    val painter: Painter = rememberCoilPainter(imageUrl)
                     Image(
-                        painter = painterResource(id = R.drawable.img_1),
+                        painter = painterResource(id = R.drawable.camera),
                         contentDescription = "Profile Photo",
                         modifier = Modifier
                             .size(100.dp)
@@ -144,9 +163,11 @@ fun artisanProfileScreen(user: User?) {
                     Card(
                         modifier = Modifier
                             .size(35.dp)
-                            .align(Alignment.BottomEnd),
+                            .align(Alignment.BottomEnd)
+                            .clickable { launcher.launch(imagePickerIntent()) },
                         border = BorderStroke(2.dp, Color.White),
                         shape = CircleShape
+
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.camera),
@@ -242,7 +263,9 @@ fun artisanProfileScreen(user: User?) {
                     Surface(
                         color = Color.White,
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.padding(10.dp).size(300.dp, 250.dp)
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .size(300.dp, 250.dp)
                     ) {
                         Column(
                             modifier = Modifier
@@ -317,9 +340,41 @@ fun artisanProfileScreen(user: User?) {
                     }
                 }
             }
+            LaunchedEffect(imageUri){
+                if(imageUri != null){
+                    uploadImageToFirebase(context, imageUri!!, user){
+                        success, errorMessage ->
+                        if(success){
+                            uploading = false
+                            Toast.makeText(context, "PDF uploaded successfully", Toast.LENGTH_SHORT).show()
+                        }else{
+                            uploading = false
+                            Toast.makeText(context, "Failed to upload PDF: $errorMessage", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
+fun uploadImageToFirebase(context: Context, imageUri: Uri, user: User?, onComplete: (Boolean, String?) -> Unit) {
+    val storageRef = Firebase.storage.reference
+    val name = user?.name ?: ""
+    val fileName = "${name}_${System.currentTimeMillis()}.pdf" // Add timestamp to the filename
+    val fileRef = storageRef.child("profile_images/$fileName") // Adjusted path to certifications folder
+
+    // Upload the file
+    fileRef.putFile(imageUri)
+        .addOnSuccessListener { _ ->
+            onComplete(true, null)
+
+        }
+        .addOnFailureListener { exception ->
+            onComplete(false, exception.message)
+        }
+}
+
 @Composable
 fun PasswordDialog(context: Context, name: String, email: String, mobileNo: String, onDismiss: () -> Unit) {
     var password by remember { mutableStateOf(TextFieldValue()) }
@@ -432,6 +487,13 @@ fun artisanUpdateDetails(context: Context, name: String, email: String, mobileNo
     } else {
         // User not logged in
         Toast.makeText(context, "User not logged in", Toast.LENGTH_SHORT).show()
+    }
+}
+
+private fun imagePickerIntent(): Intent {
+    return Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+        addCategory(Intent.CATEGORY_OPENABLE)
+        type = "image/*" // Filter only image files
     }
 }
 

@@ -10,5 +10,6 @@ data class AssignedJob(
     val artisanName: String,
     val mobileNumber: String,
     val jobDescription: String,
-    val date: Date = Calendar.getInstance().time
+    val date: Date = Calendar.getInstance().time,
+    val jobId: String
 )
